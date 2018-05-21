@@ -33,8 +33,8 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 		default:
 			if !first {
 				time.Sleep(sleep)
-				first = false
 			}
+			first = false
 
 			song, err := s.getCurrentlyPlaying()
 			if err != nil {
