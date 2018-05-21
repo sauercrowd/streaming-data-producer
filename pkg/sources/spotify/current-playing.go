@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/sauercrowd/streaming-data-producer/pkg/data"
 )
 
@@ -131,9 +132,12 @@ func transformSong(cp *CurrentlyPlaying, beginTimestamp int64) data.Datapoint {
 	m["context_type"] = cp.Context.Type
 	m["context_uri"] = cp.Context.URI
 
+	t := time.Unix(0, int64(time.Millisecond)*cp.Timestamp)
+	datetime := civil.DateTimeOf(t)
+
 	flatCPlaying := CurrentlyPlayingStruct{
 		BeginTimestamp: beginTimestamp,
-		Timestamp:      cp.Timestamp,
+		Datetime:       datetime,
 		Name:           cp.Item.Name,
 		URL:            cp.Item.ExternalUrls.Spotify,
 		URI:            cp.Item.URI,
@@ -161,7 +165,7 @@ func transformSong(cp *CurrentlyPlaying, beginTimestamp int64) data.Datapoint {
 }
 
 type CurrentlyPlayingStruct struct {
-	Timestamp      int64
+	Datetime       civil.DateTime
 	BeginTimestamp int64
 	Name           string
 	URL            string
