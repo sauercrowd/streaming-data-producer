@@ -23,6 +23,7 @@ type currentlyPlayingState struct {
 
 func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Datapoint, sleep time.Duration, onlyNew bool, compactFormat bool) error {
 	first := true
+	playID := int64(0)
 	state := currentlyPlayingState{}
 	errorCount := 0
 	for {
@@ -43,6 +44,7 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 				if maxErrorCount != -1 && errorCount > maxErrorCount {
 					log.Fatal("Max Error count reached")
 				}
+				first = false
 				continue
 			}
 			if onlyNew && !first {
@@ -51,11 +53,16 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 					state.songURI == song.Item.URI &&
 					state.progressMs <= song.ProgressMs { //song didn't get restarted or is paused
 					log.Println("nothing worth saving")
+					first = false
 					continue
 				}
 			}
-			dataPoint := transformSong(song)
+			dataPoint := transformSong(song, playID)
+
 			ch <- dataPoint
+			if state.songURI != song.Item.URI {
+				playID++
+			}
 			state.IsPlaying = song.IsPlaying
 			state.songURI = song.Item.URI
 			state.progressMs = song.ProgressMs
@@ -83,7 +90,7 @@ func (s *Session) getCurrentlyPlaying() (*CurrentlyPlaying, error) {
 }
 
 //creates a map with 19 fields
-func transformSong(cp *CurrentlyPlaying) data.Datapoint {
+func transformSong(cp *CurrentlyPlaying, playID int64) data.Datapoint {
 	m := make(map[string]string)
 	m["timestamp"] = fmt.Sprint(cp.Timestamp)
 
@@ -124,6 +131,7 @@ func transformSong(cp *CurrentlyPlaying) data.Datapoint {
 	m["context_uri"] = cp.Context.URI
 
 	flatCPlaying := CurrentlyPlayingStruct{
+		PlayID:      playID,
 		Timestamp:   cp.Timestamp,
 		Name:        cp.Item.Name,
 		URL:         cp.Item.ExternalUrls.Spotify,
@@ -153,6 +161,7 @@ func transformSong(cp *CurrentlyPlaying) data.Datapoint {
 
 type CurrentlyPlayingStruct struct {
 	Timestamp     int64
+	PlayID        int64
 	Name          string
 	URL           string
 	URI           string

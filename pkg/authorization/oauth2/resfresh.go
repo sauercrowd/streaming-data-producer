@@ -33,6 +33,9 @@ func (c *Client) refresh(session *Session) (*Session, error) {
 	client := &http.Client{}
 	basicToken := base64.StdEncoding.EncodeToString([]byte(session.clientID + ":" + session.clientSecret))
 
+	//save refresh token
+	refreshToken := session.RefreshToken
+
 	formData := url.Values{}
 	formData.Add("grant_type", "refresh_token")
 	formData.Add("refresh_token", session.RefreshToken)
@@ -63,5 +66,6 @@ func (c *Client) refresh(session *Session) (*Session, error) {
 	t := time.Now()
 	nextRefresh := t.Add(time.Second * time.Duration(session.ExpiresIn))
 	newSession.NextRefresh = nextRefresh
+	newSession.RefreshToken = refreshToken
 	return &newSession, nil
 }
