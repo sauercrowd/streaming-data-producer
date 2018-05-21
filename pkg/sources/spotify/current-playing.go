@@ -16,14 +16,14 @@ const currentlyPlayingEndpoint = "https://api.spotify.com/v1/me/player/currently
 const maxErrorCount = -1
 
 type currentlyPlayingState struct {
-	IsPlaying  bool
-	songURI    string
-	progressMs int64
+	IsPlaying      bool
+	songURI        string
+	progressMs     int64
+	beginTimestamp int64
 }
 
 func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Datapoint, sleep time.Duration, onlyNew bool, compactFormat bool) error {
 	first := true
-	playID := int64(0)
 	state := currentlyPlayingState{}
 	errorCount := 0
 	for {
@@ -59,11 +59,11 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 			}
 			log.Printf("[%s] %s", artist, song.Item.Name)
 
-			dataPoint := transformSong(song, playID)
+			dataPoint := transformSong(song, state.beginTimestamp)
 
 			ch <- dataPoint
 			if state.songURI != song.Item.URI {
-				playID++
+				state.beginTimestamp = song.Timestamp
 			}
 			state.IsPlaying = song.IsPlaying
 			state.songURI = song.Item.URI
@@ -91,7 +91,7 @@ func (s *Session) getCurrentlyPlaying() (*CurrentlyPlaying, error) {
 }
 
 //creates a map with 19 fields
-func transformSong(cp *CurrentlyPlaying, playID int64) data.Datapoint {
+func transformSong(cp *CurrentlyPlaying, beginTimestamp int64) data.Datapoint {
 	m := make(map[string]string)
 	m["timestamp"] = fmt.Sprint(cp.Timestamp)
 
@@ -132,22 +132,22 @@ func transformSong(cp *CurrentlyPlaying, playID int64) data.Datapoint {
 	m["context_uri"] = cp.Context.URI
 
 	flatCPlaying := CurrentlyPlayingStruct{
-		PlayID:      playID,
-		Timestamp:   cp.Timestamp,
-		Name:        cp.Item.Name,
-		URL:         cp.Item.ExternalUrls.Spotify,
-		URI:         cp.Item.URI,
-		Popularity:  cp.Item.Popularity,
-		Explicit:    cp.Item.Explicit,
-		ProgressMS:  cp.ProgressMs,
-		DurationMS:  cp.Item.DurationMs,
-		IsPlaying:   cp.IsPlaying,
-		AlbumName:   cp.Item.Album.Name,
-		AlbumURL:    cp.Item.Album.ExternalUrls.Spotify,
-		TrackNumber: cp.Item.TrackNumber,
-		ContextURL:  cp.Context.ExternalUrls.Spotify,
-		ContextType: cp.Context.Type,
-		ContextURI:  cp.Context.URI,
+		BeginTimestamp: beginTimestamp,
+		Timestamp:      cp.Timestamp,
+		Name:           cp.Item.Name,
+		URL:            cp.Item.ExternalUrls.Spotify,
+		URI:            cp.Item.URI,
+		Popularity:     cp.Item.Popularity,
+		Explicit:       cp.Item.Explicit,
+		ProgressMS:     cp.ProgressMs,
+		DurationMS:     cp.Item.DurationMs,
+		IsPlaying:      cp.IsPlaying,
+		AlbumName:      cp.Item.Album.Name,
+		AlbumURL:       cp.Item.Album.ExternalUrls.Spotify,
+		TrackNumber:    cp.Item.TrackNumber,
+		ContextURL:     cp.Context.ExternalUrls.Spotify,
+		ContextType:    cp.Context.Type,
+		ContextURI:     cp.Context.URI,
 	}
 	if len(cp.Item.Album.Images) > 0 {
 		flatCPlaying.AlbumImageURL = cp.Item.Album.Images[0].URL
@@ -161,26 +161,26 @@ func transformSong(cp *CurrentlyPlaying, playID int64) data.Datapoint {
 }
 
 type CurrentlyPlayingStruct struct {
-	Timestamp     int64
-	PlayID        int64
-	Name          string
-	URL           string
-	URI           string
-	Popularity    int
-	Explicit      bool
-	ProgressMS    int64
-	DurationMS    int64
-	IsPlaying     bool
-	AlbumName     string
-	AlbumURL      string
-	TrackNumber   int
-	AlbumImageURL string
-	ArtistName    string
-	ArtistURI     string
-	ArtistURL     string
-	ContextURL    string
-	ContextType   string
-	ContextURI    string
+	Timestamp      int64
+	BeginTimestamp int64
+	Name           string
+	URL            string
+	URI            string
+	Popularity     int
+	Explicit       bool
+	ProgressMS     int64
+	DurationMS     int64
+	IsPlaying      bool
+	AlbumName      string
+	AlbumURL       string
+	TrackNumber    int
+	AlbumImageURL  string
+	ArtistName     string
+	ArtistURI      string
+	ArtistURL      string
+	ContextURL     string
+	ContextType    string
+	ContextURI     string
 }
 
 type CurrentlyPlaying struct {
