@@ -55,13 +55,12 @@ func (bq *Sink) Listen(ctx context.Context, projectID, datasetName, tableName st
 				return err
 			}
 		}
-		// structType := reflect.TypeOf(datapoint.Struct)
-		// specialisedStruct := reflect.ValueOf(datapoint.Struct).Convert(structType)
 		x, _ := datapoint.Struct.(spotify.CurrentlyPlayingStruct)
 		items := []*spotify.CurrentlyPlayingStruct{&x}
 		if err := bq.uploader.Put(ctx, items); err != nil {
 			return err
 		}
+		first = false
 	}
 	return nil
 }
