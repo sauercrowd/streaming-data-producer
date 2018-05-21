@@ -53,6 +53,11 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 				state.progressMs <= song.ProgressMs { //song didn't get restarted or is paused
 				continue
 			}
+
+			if state.songURI != song.Item.URI {
+				state.beginTimestamp = song.Timestamp
+			}
+
 			//log
 			artist := ""
 			if len(song.Item.Artists) > 0 {
@@ -63,9 +68,7 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 			dataPoint := transformSong(song, state.beginTimestamp)
 
 			ch <- dataPoint
-			if state.songURI != song.Item.URI {
-				state.beginTimestamp = song.Timestamp
-			}
+
 			state.IsPlaying = song.IsPlaying
 			state.songURI = song.Item.URI
 			state.progressMs = song.ProgressMs
