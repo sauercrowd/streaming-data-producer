@@ -33,6 +33,7 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 		default:
 			if !first {
 				time.Sleep(sleep)
+				first = false
 			}
 
 			song, err := s.getCurrentlyPlaying()
@@ -44,19 +45,20 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 				if maxErrorCount != -1 && errorCount > maxErrorCount {
 					log.Fatal("Max Error count reached")
 				}
-				first = false
 				continue
 			}
-			if onlyNew && !first {
-				//if it isn't something worth saving, continue now
-				if state.IsPlaying == song.IsPlaying &&
-					state.songURI == song.Item.URI &&
-					state.progressMs <= song.ProgressMs { //song didn't get restarted or is paused
-					log.Println("nothing worth saving")
-					first = false
-					continue
-				}
+			if onlyNew && state.IsPlaying == song.IsPlaying &&
+				state.songURI == song.Item.URI &&
+				state.progressMs <= song.ProgressMs { //song didn't get restarted or is paused
+				continue
 			}
+			//log
+			artist := ""
+			if len(song.Item.Artists) > 0 {
+				artist = song.Item.Artists[0].Name
+			}
+			log.Printf("[%s] %s", artist, song.Item.Name)
+
 			dataPoint := transformSong(song, playID)
 
 			ch <- dataPoint
@@ -66,7 +68,6 @@ func (s *Session) SubscribeCurrentPlaying(ctx context.Context, ch chan data.Data
 			state.IsPlaying = song.IsPlaying
 			state.songURI = song.Item.URI
 			state.progressMs = song.ProgressMs
-			first = false
 		}
 	}
 }
